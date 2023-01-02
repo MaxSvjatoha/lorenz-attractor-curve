@@ -1,12 +1,24 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import animation
 
-# Lorenz paramters and initial conditions
-sigma, beta, rho = 10, 2.667, 28
-u0, v0, w0 = 0, 1, 1.05
+preset = False
+
+if preset:
+    # Lorenz paramters and initial conditions, preset:
+    sigma, beta, rho = 10, 2.667, 28
+    u0, v0, w0 = 0, 1, 1.05
+else:
+    # Lorenz paramters and initial conditions, random:
+    sigma, beta, rho = np.random.uniform(0, 20), np.random.uniform(0, 5), np.random.uniform(0, 30)
+    u0, v0, w0 = np.random.uniform(0, 2), np.random.uniform(0, 2), np.random.uniform(0, 2)
+    
+print(f"sigma: {sigma}, beta: {beta}, rho: {rho}")
+print(f"u0: {u0}, v0: {v0}, w0: {w0}")
 
 # Maximum time point and total number of time points
-tmax, n = 100, 10000
+#tmax, n = 100, 10000
+tmax, n = 30, 900
 
 # Time step
 dt = tmax / n
@@ -26,10 +38,40 @@ for i in range(1, n):
     y[i] = y[i-1] + dt * (x[i-1] * (rho - z[i-1]) - y[i-1])
     z[i] = z[i-1] + dt * (x[i-1] * y[i-1] - beta * z[i-1])
 
-# Create 3D plot
+# Create figure and 3D axis
 fig = plt.figure()
 ax = plt.axes(projection='3d')
 
-ax.plot3D(x, y, z, 'gray')
+# Set axis limits
+ax.set_xlim((-30, 30))
+ax.set_ylim((-30, 30))
+ax.set_zlim((0, 50))
 
-plt.show()
+# Set line colors
+colors = plt.cm.cool(np.linspace(0, 1, n))
+
+# Create line objects
+lines = [ax.plot([], [], [], '-', c=c)[0] for c in colors]
+
+# Set up the animation
+def init():
+    for line in lines:
+        line.set_data([], [])
+        line.set_3d_properties([])
+    return lines
+
+def animate(i):
+    for j, line in enumerate(lines):
+        line.set_data(x[:i], y[:i])
+        line.set_3d_properties(z[:i])
+    return lines
+
+# Create the animation
+anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               frames=n, interval=20, blit=True)
+
+# Set the file name (use all 6 initial conditions as file name)
+file_name = f"lorenz__sigma_{sigma}__beta_{beta}__rho_{rho}__u0_{u0}__v0_{v0}__w0_{w0}.gif"
+
+# Save the animation
+anim.save(file_name, writer='Pillow', fps=20)
