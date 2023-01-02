@@ -1,8 +1,12 @@
 import numpy as np
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
+# TODO: Add additional functionality
+
 preset = False
+save_animation = True
 
 if preset:
     # Lorenz paramters and initial conditions, preset:
@@ -25,18 +29,19 @@ dt = tmax / n
 
 # Create arrays to store the solution
 t = np.arange(0, tmax, dt)
-x = np.empty(n)
-y = np.empty(n)
-z = np.empty(n)
+x = np.empty((n+1,))
+y = np.empty((n+1,))
+z = np.empty((n+1,))
 
 # Set initial conditions
 x[0], y[0], z[0] = u0, v0, w0
 
 # Iterate over the time steps to solve the system
-for i in range(1, n):
-    x[i] = x[i-1] + dt * sigma * (y[i-1] - x[i-1])
-    y[i] = y[i-1] + dt * (x[i-1] * (rho - z[i-1]) - y[i-1])
-    z[i] = z[i-1] + dt * (x[i-1] * y[i-1] - beta * z[i-1])
+print("Solving the system...")
+for i in tqdm(range(n)):
+    x[i+1] = x[i] + dt * sigma * (y[i] - x[i])
+    y[i+1] = y[i] + dt * (x[i] * (rho - z[i]) - y[i])
+    z[i+1] = z[i] + dt * (x[i] * y[i] - beta * z[i])
 
 # Create figure and 3D axis
 fig = plt.figure()
@@ -66,12 +71,26 @@ def animate(i):
         line.set_3d_properties(z[:i])
     return lines
 
+print("Creating the animation...")
+
 # Create the animation
 anim = animation.FuncAnimation(fig, animate, init_func=init,
                                frames=n, interval=20, blit=True)
 
-# Set the file name (use all 6 initial conditions as file name)
-file_name = f"lorenz__sigma_{sigma}__beta_{beta}__rho_{rho}__u0_{u0}__v0_{v0}__w0_{w0}.gif"
+if save_animation:
+    # Set the file name (use all 6 initial conditions as file name)
+    file_name = f"lorenz__sigma_{sigma}__beta_{beta}__rho_{rho}__u0_{u0}__v0_{v0}__w0_{w0}.gif"
 
-# Save the animation
-anim.save(file_name, writer='Pillow', fps=20)
+    print(f"Saving the animation as {file_name}...")
+
+    # set up progress bar
+    tqdm.write("Saving animation, please wait...")
+    with tqdm(total=n) as pbar:
+        # save the animation
+        anim.save(file_name, writer="ffmpeg", progress_callback=lambda i, n: pbar.update(1))
+
+    # clear the progress bar
+    tqdm.write("\nDone!")
+else:
+    print("Showing the animation...")
+    plt.show()
